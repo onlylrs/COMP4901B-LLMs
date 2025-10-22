@@ -7,6 +7,10 @@ from datasets import load_dataset
 from typing import Set, Dict
 import string
 
+import html2text
+import chardet
+import regex as re
+
 def retrieve_bad_words() -> set[str]:
     """Helper function - that reads a list of bad words from a file and returns them as a set.
     Returns:
@@ -25,7 +29,28 @@ def html_to_text(html) -> str:
     Returns:
         str: Plain text extracted from HTML.
     """
-    pass 
+    if isinstance(html, bytes):
+        raw = bytes(html)
+        det = chardet.detect(raw)
+        enc = (det.get("encoding") or "utf-8").strip()
+        html = html.decode(enc, errors='replace')
+    # print("HTML:")
+    # print(html)
+
+    h = html2text.HTML2Text()
+    h.ignore_links = True
+    h.ignore_images = False
+    h.images_to_alt = True
+    h.inline_links = False
+    h.ignore_tables=True
+    h.ignore_emphasis = True
+    h.ignore_links = True
+    h.unicode_snob = True
+    h.body_width = 0
+
+    text = h.handle(html).strip()
+    return text
+
 
 def replace_pii(text: str) -> str:
     """Masks personally identifiable information (PII) from text with the specified masking formats.
@@ -35,8 +60,15 @@ def replace_pii(text: str) -> str:
         str: Text with PII obfuscated.
     """
     # Replace US social security numbers (XXX-XX-XXXX format)
-    pass 
+    ssn_pattern = r'\b\d{3}-\d{2}-\d{4}\b'
+    text = re.sub(ssn_pattern, 'XXX-XX-XXXX', text)
     
+    # Replace 10-digit phone numbers prefixed with +1
+    phone_pattern = r'\+1\d{10}\b'
+    text = re.sub(phone_pattern, '+1XXXXXXXXXX', text)
+    
+    return text
+
 
 def clean_text(text: str) -> str:
     """Removes substrings identified as low-quality according to alphanumeric, whitespace and valid document checks.
@@ -45,7 +77,24 @@ def clean_text(text: str) -> str:
     Returns:
         str: cleaned document
     """
-    pass
+    # Split the document into paragraphs
+    paragraphs = text.split("\n")
+    
+    kept_paragraphs = []
+    for paragraph in paragraphs:
+        # Drop paragraphs that contain more than 100 alphanumeric characters with no whitespace between them
+        if re.search(r'[a-zA-Z0-9]{101,}', paragraph):
+            continue
+            
+        # Drop paragraphs that do not contain punctuation
+        if not any(c in string.punctuation for c in paragraph):
+            continue
+            
+        kept_paragraphs.append(paragraph)
+    
+    # Join the surviving paragraphs with newline characters in their original order
+    cleaned = "\n".join(kept_paragraphs)
+    return cleaned
 
 
 def heuristic_quality_filter(text: str) -> bool:
@@ -55,7 +104,27 @@ def heuristic_quality_filter(text: str) -> bool:
     Returns:
         bool: returns True if the document passes the filters, False otherwise.
     """
-    pass 
+    bad_words = retrieve_bad_words()
+    lowered = text.lower()
+    for bw in bad_words:
+        if bw in lowered:
+            return False
+    
+    # Check for non-whitespace content
+    if len(text.strip()) == 0:
+        return False
+    
+    # Must include at least one punctuation character
+    punctuation = sum(c in string.punctuation for c in text)
+    if punctuation == 0:
+        return False
+    
+    # Check that 80% or more characters are alphanumeric, punctuation, or whitespace
+    valid_chars = sum(c.isalnum() or c in string.punctuation or c.isspace() for c in text)
+    if valid_chars / len(text) < 0.8:
+        return False
+    
+    return True
 
 
 def is_english_text(text: str) -> bool:
@@ -65,7 +134,11 @@ def is_english_text(text: str) -> bool:
     Returns:
         bool: True if text is primarily English, False otherwise
     """
-    pass
+    english_letters = sum(c.isascii() and c.isalpha() for c in text)
+    total_letters = sum(c.isalpha() for c in text)
+    if total_letters == 0:
+        return False
+    return english_letters / total_letters > 0.9
     
 
 def deduplicate_texts(texts: list[str]) -> list[str]:
@@ -75,7 +148,30 @@ def deduplicate_texts(texts: list[str]) -> list[str]:
     Returns:
         list[str]: Deduplicated list of texts. Implemented a simple Jaccard similarity based deduplication.
     """
-    pass
+    kept: list[str] = []
+    kept_sets: list[set[str]] = []
+    THRESH = 0.5
+
+    for t in texts:
+        tokens = re.findall(r'\w+', t.lower())
+        tset = set(tokens)
+        if not tset:
+            continue
+
+        duplicate = False
+        for ks in kept_sets:
+            inter = len(tset & ks)
+            union = len(tset | ks) or 1
+            jaccard = inter / union
+            if jaccard >= THRESH:
+                duplicate = True
+                break
+
+        if not duplicate:
+            kept.append(t)
+            kept_sets.append(tset)
+
+    return kept
 
 
 if __name__ == '__main__' :

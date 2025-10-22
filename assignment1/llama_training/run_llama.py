@@ -58,7 +58,11 @@ class WarmupLearningRateScheduler:
 		#
 		# Returns:
 		#     float: Learning rate for the given step
-		pass
+		if self.warmup_steps == 0:
+			return self.base_lr
+		if step < self.warmup_steps:
+			return self.base_lr * step / self.warmup_steps
+		return self.base_lr
 		# ====================== Implement lr_at_step here ======================
 
 	def __call__(self, step: int) -> float:
@@ -172,7 +176,7 @@ def preprocess_pretraining_corpus(data_path: str, tokenizer: Tokenizer, tokenize
 	print(f"Wrote pretraining metadata to {metadata_path}")
 	return output_dir, metadata
 
-def evaluate_pretraining(dataloader, model, device, marker="val", pad_token_id=None):
+def evaluate_pretraining(dataloader, model, device, marker="val"):
 	model.eval()
 	total_loss = 0.0
 	total_tokens = 0
@@ -187,6 +191,7 @@ def evaluate_pretraining(dataloader, model, device, marker="val", pad_token_id=N
 				continue
 			logits_flat = shift_logits.view(-1, shift_logits.size(-1))
 			labels_flat = shift_labels.view(-1)
+			pad_token_id = getattr(model.llama.params, 'pad_token_id', None)
 			if pad_token_id is not None:
 				valid_mask = labels_flat.ne(pad_token_id)
 				if not torch.any(valid_mask):

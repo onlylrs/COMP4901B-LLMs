@@ -36,12 +36,12 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--generated_sentence_low_temp_out",
         type=str,
-        default="generated-sentence-temp-0.txt",
+        default="generated-sentence-temp-0-teacher.txt",
     )
     parser.add_argument(
         "--generated_sentence_high_temp_out",
         type=str,
-        default="generated-sentence-temp-1.txt",
+        default="generated-sentence-temp-1-teacher.txt",
     )
     parser.add_argument("--run_name", type=str, default=None, help="Optional wandb run display name")
     parser.add_argument("--wandb_project", type=str, default=None, help="wandb project name")
