@@ -373,11 +373,11 @@ If you encounter CUDA out-of-memory errors:
 
 Submit a zip of the codebase (only the homework directory) and a PDF report to Canvas. Your PDF should include your full name, student ID, and your UST email.
 
-### Part 1: Single-turn Loss Masking (20 points)
+### Part 1: Single-turn Loss Masking (15 points)
 - Screenshot showing validation passed
 - Brief explanation of your implementation logic
 
-### Part 2: Multi-turn Loss Masking (20 points)
+### Part 2: Multi-turn Loss Masking (15 points)
 - Screenshot showing validation passed
 - Explanation of how you extended the single-turn logic
 
@@ -386,12 +386,12 @@ Submit a zip of the codebase (only the homework directory) and a PDF report to C
 - Explanation of your loss computation (formula and steps)
 - Explanation of what `num_items_in_batch` represents and why it's necessary
 
-### Part 4: Supervised Fine-Tuning (25 points)
+### Part 4: Supervised Fine-Tuning (20 points)
 - Training configuration summary
 - Training loss curve (screenshot)
 - **Answer the question**: What is the role of `tokenizer.apply_chat_template()` in the SFT pipeline? How does it format conversations?
 
-### Part 5: IFEval Evaluation & Tuning (15 points)
+### Part 5: IFEval Evaluation & Tuning (35 points)
 - Comparison table (before/after SFT metrics)
 - Final strict accuracy (must be > 22%)
 - Hyperparameter tuning summary with results table
